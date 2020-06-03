@@ -1,21 +1,25 @@
 import { startOfHour } from 'date-fns';
-import { getCustomRepository } from 'typeorm';
-
-import Appointment from '@modules/appointments/infra/typeorm/entities/Appointment';
-import AppointmentsRepository from '@modules/appointments/repositories/AppointmentsRepository';
+import { injectable, inject } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
 
-interface Request {
+import Appointment from '@modules/appointments/infra/typeorm/entities/Appointment';
+import IAppointmentsRepository from '@modules/appointments/repositories/IAppointmentsRepository';
+
+interface IRequest {
   provider_id: string;
   date: Date;
 }
 
 // Todo service tem um unico metodo
+@injectable()
 class CreateAppointmentService {
-  appointmentsRepository = getCustomRepository(AppointmentsRepository);
+  constructor(
+    @inject('AppointmentsRepository')
+    private appointmentsRepository: IAppointmentsRepository,
+  ) {}
 
-  public async execute({ provider_id, date }: Request): Promise<Appointment> {
+  public async execute({ provider_id, date }: IRequest): Promise<Appointment> {
     const appointmentDate = startOfHour(date);
     // regra de negocio de negocio que determinada que a marcacao deverah
     // ocorrer em horas cheias 09:00, 10:00, 11:00
@@ -32,13 +36,11 @@ class CreateAppointmentService {
     }
 
     // Cria apenas uma instancia do objeto a ser salvo
+    // Salva efetivamente as alterações na base de dados
     const appointment = this.appointmentsRepository.create({
       provider_id,
       date: appointmentDate,
     });
-
-    // Salva efetivamente as alterações na base de dados
-    await this.appointmentsRepository.save(appointment);
 
     return appointment;
   }
