@@ -1,12 +1,9 @@
-import path from 'path';
-import fs from 'fs';
 import { injectable, inject } from 'tsyringe';
-
-import uploadConfig from '@config/upload';
 import AppError from '@shared/errors/AppError';
-import IUsersRepository from '@modules/users/repositories/IUsersRepository';
-
 import User from '@modules/users/infra/typeorm/entities/User';
+
+import IUsersRepository from '@modules/users/repositories/IUsersRepository';
+import IStorageProvider from '@shared/container/providers/StorageProvider/models/IStorageProvider';
 
 interface IRequest {
   user_id: string;
@@ -18,6 +15,9 @@ class UpdateUserAvatarService {
   constructor(
     @inject('UsersRepository')
     private usersRepository: IUsersRepository,
+
+    @inject('StorageProvider')
+    private storageProvider: IStorageProvider,
   ) {}
 
   public async execute({ user_id, avatarFilename }: IRequest): Promise<User> {
@@ -31,19 +31,13 @@ class UpdateUserAvatarService {
     // Se usuário já possuia um avatar
     if (user.avatar) {
       // Deletar avatar anterior
-      const userAvatarFilePath = path.join(uploadConfig.directory, user.avatar);
-
-      // fs é uma dependencia do node.js que trabalha com arquivos file-system
-      // Funcao stat traz o status de um arquivo, caso ele exista.
-      const userAvatarFileExists = await fs.promises.stat(userAvatarFilePath);
-
-      // Caso arquivo exista, deleta-o
-      if (userAvatarFileExists) {
-        await fs.promises.unlink(userAvatarFilePath);
-      }
+      await this.storageProvider.deleteFile(user.avatar);
     }
 
-    user.avatar = avatarFilename;
+    // Salva avatar
+    const filename = await this.storageProvider.saveFile(avatarFilename);
+
+    user.avatar = filename;
 
     await this.usersRepository.save(user);
 
