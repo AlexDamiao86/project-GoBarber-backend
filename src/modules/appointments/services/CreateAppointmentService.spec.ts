@@ -35,7 +35,7 @@ describe('CreateAppointment', () => {
       provider_id: uuid(),
     });
 
-    expect(
+    await expect(
       createAppointment.execute({
         date: appointmentDate,
         provider_id: uuid(),
