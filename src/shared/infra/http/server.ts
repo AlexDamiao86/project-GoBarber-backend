@@ -16,8 +16,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Permite acessar os arquivos da pasta temporária através de forma estática
-app.use('/files', express.static(uploadConfig.directory));
+// Permite acessar os arquivos da pasta temporária de forma estática
+app.use('/files', express.static(uploadConfig.uploadsFolder));
 app.use(routes);
 
 app.use(
@@ -28,7 +28,7 @@ app.use(
         message: err.message,
       });
     }
-
+    // eslint-disable-next-line no-console
     console.log(err);
 
     return response.status(500).json({
